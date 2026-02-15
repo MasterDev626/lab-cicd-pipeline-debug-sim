@@ -1,0 +1,87 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci --silent
+
+      # Step 4: Lint
+      - name: Lint code
+        run: npm run lint
+
+      # Step 5: Run tests
+      - name: Run tests
+        run: npm test
+
+      # Step 6: Build
+      - name: Build application
+        run: npm run build
+
+      # Step 7: Docker build
+      - name: Build Docker image
+        run: docker build -t md-cicd-sim:${{ github.sha }} .
+
+      # Step 8: Create artifacts
+      - name: Create distribution artifacts
+        run: |
+          mkdir -p artifacts
+          tar -czf artifacts/dist.tar.gz -C dist .
+          tar -czf artifacts/build-${{ github.sha }}.tar.gz -C dist .
+
+      # Step 9: Upload artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist-${{ matrix.node-version }}
+          path: artifacts/
+
+      # Step 10: Security audit
+      - name: NPM security audit
+        run: npm audit --production || true
+
+      # Step 11: Test Docker image
+      - name: Test Docker image
+        run: |
+          docker run --rm md-cicd-sim:${{ github.sha }} node --version
+          docker run --rm md-cicd-sim:${{ github.sha }} npm --version
+
+  release:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Tag release
+        run: |
+          git config user.name "CI Bot"
+          git config user.email "ci@example.com"
+          git tag -a v0.1.0-${{ github.run_number }} -m "Release v0.1.0-${{ github.run_number }}"
+          git push origin v0.1.0-${{ github.run_number }} || true
