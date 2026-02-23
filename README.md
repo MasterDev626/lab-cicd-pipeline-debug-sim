@@ -24,7 +24,7 @@ You'll work through a simulated on-call scenario: the pipeline is red, tests are
 ## Setup
 
 ```bash
-git clone https://github.com/Master-devops/lab-cicd-pipeline-debug-sim.git
+git clone https://github.com/MasterDev626/lab-cicd-pipeline-debug-sim.git
 cd lab-cicd-pipeline-debug-sim
 npm install
 ```
@@ -50,3 +50,7 @@ Initially this will fail. Work through the lab steps to fix each stage until the
 ## License
 
 MIT
+
+---
+
+**Built by [Tawanda Mashoko](https://github.com/TawandaMashoko)**
